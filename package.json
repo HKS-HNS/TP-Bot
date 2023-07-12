@@ -1,0 +1,8 @@
+{
+  "name": "TP-Bot",
+  "version": "1.0.0",
+  "dependencies": {
+    "mineflayer": "^4.10.0",
+    "mineflayer-auto-eat": "^3.3.6"
+  }
+}
