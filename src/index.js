@@ -1,6 +1,6 @@
 const mineflayer = require('mineflayer');
+const {pathfinder, Movements} = require('mineflayer-pathfinder');
 const autoEat = require("mineflayer-auto-eat");
-const { loadPlayerPositions } = require('./dataManagment.js');
 const fs = require('fs');
 const {
     handleWhisperEvent,
@@ -9,7 +9,7 @@ const {
     handleDespawnEvent,
     handleProgramExit,
     handleSpawnEvent,
-    initPearlPlayer
+    initData
 } = require("./eventHandlers.js");
 
 let dataManager = require('./dataManagment.js');
@@ -38,6 +38,11 @@ function connect() {
 
     // Event handler for 'spawn' event
     instance.once('spawn', () => {
+        const mcData = require('minecraft-data')(instance.version);
+        const defaultMove = new Movements(instance, mcData);
+        defaultMove.canDig = false;
+        defaultMove.allow1by1towers = false;
+        instance.pathfinder.setMovements(defaultMove);
         isConnected = true;
         instance.autoEat.options = {
             priority: 'saturation',
@@ -47,7 +52,7 @@ function connect() {
 
     // Load the autoEat plugin
     instance.loadPlugin(autoEat.plugin);
-
+    instance.loadPlugin(pathfinder)
     // Event handlers
     instance.on('whisper', handleWhisperEvent.bind(null, instance));
     instance.on('kicked', handleKick.bind(null, instance));
@@ -55,7 +60,7 @@ function connect() {
     instance.on('entitySpawn', handleSpawnEntityEvent.bind(null, instance));
     instance.on('spawn', handleSpawnEvent.bind(null, instance));
     instance._client.on('packet', handleSpawnEntityPacketEvent.bind(null, instance));
-}
+    }
 
 // Handle program exit signals
 process.on('SIGINT', handleProgramExit);
@@ -76,7 +81,7 @@ function handleKick(instance, reason, loggedIn) {
 }
 
 // Initialize pearlPlayer
-initPearlPlayer();
+initData();
 
 // Call connect function to start the bot
 connect();

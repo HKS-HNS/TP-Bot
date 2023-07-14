@@ -1,9 +1,10 @@
-// Import required modules
+const Vec3 = require('vec3');
 const dataManager = require('./dataManagment.js');
-const { isUUID } = require('./utils.js');
+const { isUUID, pressButton, searchStasisChambers, getCoordinates } = require('./utils.js');
 
 // Initialize pearlPlayer object
-let pearlPlayer = {};
+let playerPearl = {};
+let stasisChambers = {};
 
 /**
  * Handles the whisper event.
@@ -16,23 +17,19 @@ function handleWhisperEvent(instance, username, message) {
     if (username === instance.username) return;
 
     if (message === "teleport") {
-        // Search for the UUID of the player sending the message in the 'pearlPlayer' object
-        let uuid = Object.keys(pearlPlayer).find(key => pearlPlayer[key] === instance.players[username].uuid);
-
-        if (uuid === undefined) return;
-
-        // Find the entity with the UUID in the 'entities' object
-        const pearl = instance.entities[Object.keys(instance.entities).find(key => instance.entities[key].uuid === uuid)];
-
-        if (pearl === undefined) return;
+        // Search for the UUID of the player sending the message in the 'playerPearl' object
+        const coords = searchStasisChambers(getCoordinates(playerPearl, instance, username), stasisChambers);
 
         // Attack the pearl entity
-        instance.attack(pearl);
+        if (coords === null) return;
+        pressButton(instance, coords);
 
         // Send a chat message with teleport information
-        instance.chat("tell " + username + " teleporting to " + pearl.position.x + " " + pearl.position.y + " " + pearl.position.z);
-    } else if (message === "getdata") {
-        console.log("Loading player positions:", dataManager.getPlayerPosition());
+    } else if (message === "addvec") {
+        stasisChambers[new Vec3(-7, 82, 148)] = new Vec3(-7, 82, 143);
+    } else if (message === "goto") {
+        const coords = new Vec3(-7, 82, 148);
+        // Set the goal
     }
 }
 
@@ -45,14 +42,14 @@ function handleWhisperEvent(instance, username, message) {
 function handleSpawnEntityPacketEvent(instance, data, packetMeta) {
     // Check if the spawned entity is an ender pearl (ID: 28)
     if (packetMeta.name === "spawn_entity" && data.type === 28) {
-        setTimeout(function() {
+        setTimeout(function () {
             if (data.objectData === 0) return;
 
             // Check if the entity exists in the 'entities' object
-            if (instance.entities[data.objectData.toString()] === undefined && !isUUID(pearlPlayer[data.objectUUID])) {
-                pearlPlayer[data.objectUUID] = data.objectData;
+            if (instance.entities[data.objectData.toString()] === undefined && !isUUID(playerPearl[data.objectUUID])) {
+                playerPearl[data.objectUUID] = data.objectData;
             } else if (instance.entities[data.objectData] !== undefined) {
-                pearlPlayer[data.objectUUID] = instance.entities[data.objectData].uuid;
+                playerPearl[data.objectUUID] = instance.entities[data.objectData].uuid;
             }
         }, 10);
     }
@@ -65,10 +62,10 @@ function handleSpawnEntityPacketEvent(instance, data, packetMeta) {
  */
 function handleSpawnEntityEvent(instance, entity) {
     // Check if the entity is a player
-    Object.keys(pearlPlayer).forEach(key => {
-        let uuid = Object.keys(pearlPlayer).find(playerKey => pearlPlayer[playerKey] === entity.id);
+    Object.keys(playerPearl).forEach(key => {
+        let uuid = Object.keys(playerPearl).find(playerKey => playerPearl[playerKey] === entity.id);
         if (uuid !== undefined) {
-            pearlPlayer[key] = entity.uuid;
+            playerPearl[key] = entity.uuid;
         }
     });
 }
@@ -80,7 +77,7 @@ function handleSpawnEntityEvent(instance, entity) {
  */
 function handleDespawnEvent(instance, entity) {
     if (entity.entityType === 28) {
-        delete pearlPlayer[entity.uuid];
+        delete playerPearl[entity.uuid];
     }
 }
 
@@ -88,7 +85,7 @@ function handleDespawnEvent(instance, entity) {
  * Handles the program exit event.
  */
 function handleProgramExit() {
-    dataManager.savePlayerPositions();
+    dataManager.savePositions();
     process.exit();
 }
 
@@ -97,20 +94,20 @@ function handleProgramExit() {
  * @param {Object} instance - The instance of the mineflayer bot.
  */
 function handleSpawnEvent(instance) {
-    for (let uuid in pearlPlayer) {
+    for (let uuid in playerPearl) {
         if (!Object.values(instance.entities).some(entity => entity.uuid === uuid)) {
-            delete pearlPlayer[uuid];
+            delete playerPearl[uuid];
         }
     }
 }
 
 /**
  * Initializes the pearlPlayer object.
- * @param {Object} instance - The instance of the mineflayer bot.
  */
-function initPearlPlayer(instance) {
-    dataManager.loadPlayerPositions();
-    pearlPlayer = dataManager.getPlayerPosition();
+function initData() {
+    dataManager.loadPositions();
+    playerPearl = dataManager.getPlayerPearl();
+    stasisChambers = dataManager.getStasisChambers();
 }
 
 module.exports = {
@@ -119,6 +116,6 @@ module.exports = {
     handleSpawnEntityPacketEvent,
     handleDespawnEvent,
     handleProgramExit,
-    initPearlPlayer,
+    initData,
     handleSpawnEvent
 };

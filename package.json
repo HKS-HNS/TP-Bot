@@ -2,7 +2,10 @@
   "name": "tp-bot",
   "version": "1.0.0",
   "dependencies": {
+    "minecraft-data": "^3.40.0",
     "mineflayer": "^4.10.0",
-    "mineflayer-auto-eat": "^3.3.6"
+    "mineflayer-auto-eat": "^3.3.6",
+    "mineflayer-pathfinder": "^2.4.4",
+    "vec3": "^0.1.8"
   }
 }
