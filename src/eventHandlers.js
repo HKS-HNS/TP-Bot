@@ -16,33 +16,55 @@ function handleWhisperEvent(instance, username, message) {
     // Ignore if the whisper is sent by the bot itself
     if (username === instance.username) return;
 
-    if (message === "teleport") {
+    if (message.endsWith("tp spawn")) {
         // Search for the UUID of the player sending the message in the 'playerPearl' object
         const coords = searchStasisChambers(getCoordinates(playerPearl, instance, username), stasisChambers);
-
         // Attack the pearl entity
         if (coords === null) return;
         pressButton(instance, coords);
+    }
+}
 
-        // Send a chat message with teleport information
-    } else if (message === "addvec") {
-        stasisChambers[new Vec3(-7, 82, 148)] = new Vec3(-7, 82, 143);
-    } else if (message === "goto") {
-        const coords = new Vec3(-7, 82, 148);
-        // Set the goal
+/**
+ * Handles the chat event.
+ * @param {Object} instance - The instance of the mineflayer bot.
+ * @param {string} id - The ID of the packet.
+ * @param {Object} data - The data associated with the chat event packet.
+ * @param {Object} packetMeta - The metadata of the packet.
+ */
+function handleChatEvent(instance, id, data, packetMeta) {
+    if (packetMeta.name === "player_chat" && data.plainMessage === "!sleep") {
+        const bed = instance.findBlock({
+            matching: id,
+            maxDistance: 6
+        });
+        if (bed) {
+            try {
+                instance.sleep(bed);
+            } catch (e) {
+                if (e.message === "it's not night and it's not a thunderstorm") {
+                    // Handle the error by sending a message
+                    instance.chat("Is it night or did I have a bad dream?");
+                } else {
+                    // Handle other errors or log them for debugging
+                    console.error(e);
+                }
+            }
+        }
     }
 }
 
 /**
  * Handles the spawn entity packet event.
  * @param {Object} instance - The instance of the mineflayer bot.
+ * @param {string} id - The ID of the entity.
  * @param {Object} data - The data associated with the spawn entity packet.
  * @param {Object} packetMeta - The metadata of the packet.
  */
-function handleSpawnEntityPacketEvent(instance, data, packetMeta) {
+function handleSpawnEntityPacketEvent(instance, id, data, packetMeta) {
     // Check if the spawned entity is an ender pearl (ID: 28)
-    if (packetMeta.name === "spawn_entity" && data.type === 28) {
-        setTimeout(function () {
+    if (packetMeta.name === "spawn_entity" && data.type === id) {
+        setTimeout(() => {
             if (data.objectData === 0) return;
 
             // Check if the entity exists in the 'entities' object
@@ -63,7 +85,7 @@ function handleSpawnEntityPacketEvent(instance, data, packetMeta) {
 function handleSpawnEntityEvent(instance, entity) {
     // Check if the entity is a player
     Object.keys(playerPearl).forEach(key => {
-        let uuid = Object.keys(playerPearl).find(playerKey => playerPearl[playerKey] === entity.id);
+        const uuid = Object.keys(playerPearl).find(playerKey => playerPearl[playerKey] === entity.id);
         if (uuid !== undefined) {
             playerPearl[key] = entity.uuid;
         }
@@ -73,9 +95,10 @@ function handleSpawnEntityEvent(instance, entity) {
 /**
  * Handles the despawn event.
  * @param {Object} instance - The instance of the mineflayer bot.
+ * @param {string} id - The ID of the entity.
  * @param {Object} entity - The despawned entity.
  */
-function handleDespawnEvent(instance, entity) {
+function handleDespawnEvent(instance, id, entity) {
     if (entity.entityType === 28) {
         delete playerPearl[entity.uuid];
     }
@@ -116,6 +139,7 @@ module.exports = {
     handleSpawnEntityPacketEvent,
     handleDespawnEvent,
     handleProgramExit,
+    handleChatEvent,
     initData,
     handleSpawnEvent
 };
