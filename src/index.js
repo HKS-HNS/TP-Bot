@@ -1,5 +1,5 @@
 const mineflayer = require('mineflayer');
-const {pathfinder, Movements} = require('mineflayer-pathfinder');
+const { pathfinder, Movements } = require('mineflayer-pathfinder');
 const autoEat = require("mineflayer-auto-eat");
 const fs = require('fs');
 const {
@@ -9,6 +9,7 @@ const {
     handleDespawnEvent,
     handleProgramExit,
     handleSpawnEvent,
+    handleChatEvent,
     initData
 } = require("./eventHandlers.js");
 
@@ -18,7 +19,7 @@ let dataManager = require('./dataManagment.js');
 const credentials = fs.readFileSync("../credentials.txt").toString().split("\n");
 
 let isConnected = false;
-let chatSigning = true;
+let chatSigning = false;
 
 // Function to connect the bot
 function connect() {
@@ -26,19 +27,22 @@ function connect() {
         return;
     }
 
+    // Create bot instance
     const instance = mineflayer.createBot({
         host: credentials[0],
         port: 25565,
         username: credentials[1],
         password: credentials[2],
-        version: "1.20.1",
+        version: "1.19.2",
         auth: 'microsoft',
         disableChatSigning: !chatSigning
     });
 
+    // Get Minecraft data for the bot's version
+    const mcData = require('minecraft-data')(instance.version);
+
     // Event handler for 'spawn' event
     instance.once('spawn', () => {
-        const mcData = require('minecraft-data')(instance.version);
         const defaultMove = new Movements(instance, mcData);
         defaultMove.canDig = false;
         defaultMove.allow1by1towers = false;
@@ -52,15 +56,17 @@ function connect() {
 
     // Load the autoEat plugin
     instance.loadPlugin(autoEat.plugin);
-    instance.loadPlugin(pathfinder)
+    instance.loadPlugin(pathfinder);
+
     // Event handlers
     instance.on('whisper', handleWhisperEvent.bind(null, instance));
     instance.on('kicked', handleKick.bind(null, instance));
-    instance.on('entityGone', handleDespawnEvent.bind(null, instance));
+    instance.on('entityGone', handleDespawnEvent.bind(null, instance).bind(null, mcData.entitiesByName["ender_pearl"].id));
     instance.on('entitySpawn', handleSpawnEntityEvent.bind(null, instance));
     instance.on('spawn', handleSpawnEvent.bind(null, instance));
-    instance._client.on('packet', handleSpawnEntityPacketEvent.bind(null, instance));
-    }
+    instance._client.on('packet', handleChatEvent.bind(null, instance).bind(null, mcData.blocksByName["white_bed"].id));
+    instance._client.on('packet', handleSpawnEntityPacketEvent.bind(null, instance).bind(null, mcData.entitiesByName["ender_pearl"].id));
+}
 
 // Handle program exit signals
 process.on('SIGINT', handleProgramExit);
@@ -79,6 +85,11 @@ function handleKick(instance, reason, loggedIn) {
         connect();
     }, 5000);
 }
+
+// Handle uncaught exceptions
+process.on('uncaughtException', function (err) {
+    console.log(err.message);
+});
 
 // Initialize pearlPlayer
 initData();
