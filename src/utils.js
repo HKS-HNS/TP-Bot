@@ -21,11 +21,15 @@ function isUUID(str) {
  * @param {Object} coords - The coordinates to move to.
  */
 function pressButton(instance, coords) {
-    instance.pathfinder.setGoal(new GoalNear(coords.x, coords.y, coords.z, 1));
+    instance.pathfinder.setGoal(new GoalNear(coords.x, coords.y, coords.z, 6));
 
     // Event handler for 'goal_reached' event
     instance.once('goal_reached', () => {
-        instance.activateBlock(instance.blockAt(coords));
+        const block = instance.blockAt(coords);
+        instance.activateBlock(block);
+        if (block.name === 'lever' || block.name.includes('trapdoor')) {
+            setTimeout(() => instance.activateBlock(block), 300);
+        }
     });
 }
 
@@ -49,7 +53,6 @@ function searchStasisChambers(coordinates, stasisChambers) {
                 Math.floor(z) === position.z &&
                 Math.abs(y - position.y) <= tolerance
             ) {
-                console.log(`Found ${key} at ${position.x}, ${position.y}, ${position.z}`);
                 return new Vec3(key);
             }
         }
@@ -72,6 +75,7 @@ function getCoordinates(playerPearl, instance, username) {
 
     return uuids.map(uuid => {
         const pearl = instance.entities[Object.keys(instance.entities).find(key => instance.entities[key].uuid === uuid)];
+        if (pearl === undefined) return [];
         return pearl.position;
     });
 }
