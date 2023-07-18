@@ -1,6 +1,16 @@
+// Import required modules
 const Vec3 = require('vec3');
 const dataManager = require('./dataManagment.js');
-const { isUUID, pressButton, searchStasisChambers, getCoordinates } = require('./utils.js');
+const {
+    isUUID,
+    activateEnderPearl,
+    pressButton,
+    searchStasisChambers,
+    getCoordinates
+} = require('./utils.js');
+const { Movements } = require('mineflayer-pathfinder');
+const { inRangeOfStasisChambers } = require('./utils');
+const mcData = require('minecraft-data');
 
 // Initialize pearlPlayer object
 let playerPearl = {};
@@ -16,12 +26,9 @@ function handleWhisperEvent(instance, username, message) {
     // Ignore if the whisper is sent by the bot itself
     if (username === instance.username) return;
 
-    if (message.endsWith("tp spawn")) {
+    if (message.endsWith('tp')) {
         // Search for the UUID of the player sending the message in the 'playerPearl' object
-        const coords = searchStasisChambers(getCoordinates(playerPearl, instance, username), stasisChambers);
-        // Attack the pearl entity
-        if (coords === null) return;
-        pressButton(instance, coords);
+        activateEnderPearl(playerPearl, stasisChambers, instance, instance.players[username].uuid);
     }
 }
 
@@ -32,24 +39,32 @@ function handleWhisperEvent(instance, username, message) {
  * @param {Object} data - The data associated with the chat event packet.
  * @param {Object} packetMeta - The metadata of the packet.
  */
-function handleChatEvent(instance, id, data, packetMeta) {
-    if (packetMeta.name === "player_chat" && data.plainMessage === "!sleep") {
-        const bed = instance.findBlock({
-            matching: id,
-            maxDistance: 6
-        });
-        if (bed) {
-            try {
-                instance.sleep(bed);
-            } catch (e) {
-                if (e.message === "it's not night and it's not a thunderstorm") {
-                    // Handle the error by sending a message
-                    instance.chat("Is it night or did I have a bad dream?");
-                } else {
-                    // Handle other errors or log them for debugging
-                    console.error(e);
+function handleChatEvent(instance, data, packetMeta) {
+    if (packetMeta.name === 'player_chat') {
+        if (data.plainMessage === '!sleep') {
+            const bedBlocks = Object.values(mcData(instance.version).blocksByName).filter(
+                (block) => block.name.includes('bed') && !block.name.includes('bedrock')
+            );
+            const bedIds = bedBlocks.map((block) => block.id);
+            const bed = instance.findBlock({
+                matching: bedIds,
+                maxDistance: 6
+            });
+            if (bed) {
+                try {
+                    instance.sleep(bed);
+                } catch (e) {
+                    if (e.message === "it's not night and it's not a thunderstorm") {
+                        // Handle the error by sending a message
+                        instance.chat("Is it night or did I have a bad dream?");
+                    } else {
+                        // Handle other errors or log them for debugging
+                        console.error(e);
+                    }
                 }
             }
+        } else if (data.plainMessage === '!tp spawn') {
+            activateEnderPearl(playerPearl, stasisChambers, instance, data.senderUuid);
         }
     }
 }
@@ -61,9 +76,9 @@ function handleChatEvent(instance, id, data, packetMeta) {
  * @param {Object} data - The data associated with the spawn entity packet.
  * @param {Object} packetMeta - The metadata of the packet.
  */
-function handleSpawnEntityPacketEvent(instance, id, data, packetMeta) {
+function handleSpawnEntityPacketEvent(instance, data, packetMeta) {
     // Check if the spawned entity is an ender pearl (ID: 28)
-    if (packetMeta.name === "spawn_entity" && data.type === id) {
+    if (packetMeta.name === 'spawn_entity' && data.type === mcData(instance.version).entitiesByName['ender_pearl'].id) {
         setTimeout(() => {
             if (data.objectData === 0) return;
 
@@ -84,12 +99,28 @@ function handleSpawnEntityPacketEvent(instance, id, data, packetMeta) {
  */
 function handleSpawnEntityEvent(instance, entity) {
     // Check if the entity is a player
-    Object.keys(playerPearl).forEach(key => {
-        const uuid = Object.keys(playerPearl).find(playerKey => playerPearl[playerKey] === entity.id);
+    Object.keys(playerPearl).forEach((key) => {
+        const uuid = Object.keys(playerPearl).find((playerKey) => playerPearl[playerKey] === entity.id);
         if (uuid !== undefined) {
             playerPearl[key] = entity.uuid;
         }
     });
+}
+
+/**
+ * Handles the physic tick event.
+ * @param {Object} instance - The instance of the mineflayer bot.
+ */
+function handlePhysicTick(instance) {
+    // Check if all the pearls are at the right position
+    if (instance.entity !== null && inRangeOfStasisChambers(stasisChambers, instance)) {
+        for (let uuid in playerPearl) {
+            const pearl = Object.values(instance.entities).find((entity) => entity.uuid === uuid);
+            if (pearl !== undefined && searchStasisChambers([pearl.position], stasisChambers) === null) {
+                delete playerPearl[uuid];
+            }
+        }
+    }
 }
 
 /**
@@ -98,8 +129,8 @@ function handleSpawnEntityEvent(instance, entity) {
  * @param {string} id - The ID of the entity.
  * @param {Object} entity - The despawned entity.
  */
-function handleDespawnEvent(instance, id, entity) {
-    if (entity.entityType === 28) {
+function handleDespawnEvent(instance, entity) {
+    if (entity.entityType === mcData(instance.version).entitiesByName['ender_pearl'].id && inRangeOfStasisChambers(stasisChambers, instance)) {
         delete playerPearl[entity.uuid];
     }
 }
@@ -115,10 +146,21 @@ function handleProgramExit() {
 /**
  * Handles the spawn event.
  * @param {Object} instance - The instance of the mineflayer bot.
+ * @param {boolean} isConnected - Whether the bot is connected to the server or not.
  */
-function handleSpawnEvent(instance) {
+function handleSpawnEvent(instance, isConnected) {
+    const defaultMove = new Movements(instance, mcData(instance.version));
+    defaultMove.canDig = false;
+    defaultMove.allow1by1towers = false;
+    instance.pathfinder.setMovements(defaultMove);
+    isConnected = true;
+    instance.autoEat.options = {
+        priority: 'saturation',
+        bannedFood: []
+    };
+
     for (let uuid in playerPearl) {
-        if (!Object.values(instance.entities).some(entity => entity.uuid === uuid)) {
+        if (!Object.values(instance.entities).some((entity) => entity.uuid === uuid) && inRangeOfStasisChambers(stasisChambers, instance)) {
             delete playerPearl[uuid];
         }
     }
@@ -133,12 +175,14 @@ function initData() {
     stasisChambers = dataManager.getStasisChambers();
 }
 
+// Export functions
 module.exports = {
     handleWhisperEvent,
     handleSpawnEntityEvent,
     handleSpawnEntityPacketEvent,
     handleDespawnEvent,
     handleProgramExit,
+    handlePhysicTick,
     handleChatEvent,
     initData,
     handleSpawnEvent
