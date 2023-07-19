@@ -1,3 +1,5 @@
 /credentials.txt
 /node_modules/
 /package-lock.json
+/settings.json
+/playerPearl.json
