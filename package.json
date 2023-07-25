@@ -6,6 +6,7 @@
     "mineflayer": "^4.10.0",
     "mineflayer-auto-eat": "^3.3.6",
     "mineflayer-pathfinder": "^2.4.4",
+    "prompt-sync": "^4.2.0",
     "vec3": "^0.1.8"
   }
 }

@@ -266,7 +266,6 @@ function clearConsole() {
     spawnSync(clearCommand, { stdio: 'inherit' });
 }
 
-// Export the function to be used in other modules
-module.exports = {
-    setupSettingScreen
-}
+
+setupSettingScreen();
+
