@@ -3,6 +3,7 @@ const readline = require('readline');
 const { spawnSync } = require('child_process');
 const dataManager = require('./dataManagment.js');
 const vec3 = require('vec3');
+const { Vec3 } = require("vec3");
 
 // Initialize global objects to store data
 let stasisChambers = {};
@@ -16,6 +17,7 @@ const rl = readline.createInterface({
 
 /**
  * Initialize the setting screen setup.
+ * This function loads positions and settings data, and starts the startMenu function.
  */
 async function setupSettingScreen() {
     await dataManager.loadPositions();
@@ -125,27 +127,30 @@ async function setStasisMenu() {
     console.log("3. Back");
     console.log("4. Exit");
     const input = await askQuestion("Enter your choice: ");
-    handleStasisMenuChoice(input);
+    await handleStasisMenuChoice(input);
 }
 
 /**
  * Handle the user's choice in the stasis menu.
  * @param {string} input - The user's input choice.
  */
-function handleStasisMenuChoice(input) {
+async function handleStasisMenuChoice(input) {
     switch (input) {
         case "1":
-            addStasisChamber();
+            await addStasisChamber();
             setStasisMenu();
             break;
         case "2":
-            removeStasisChamber();
+            await removeStasisChamber();
             setStasisMenu();
             break;
         case "3":
             startMenu();
+            dataManager.saveSettings(settings);
+            dataManager.savePositions(stasisChambers);
             break;
         case "4":
+            dataManager.savePositions(stasisChambers);
             dataManager.saveSettings(settings);
             rl.close();
             break;
@@ -232,9 +237,12 @@ function handleMCServerMenuChoice(input) {
             break;
         case "5":
             startMenu();
+            dataManager.saveSettings(settings);
+            dataManager.savePositions(stasisChambers);
             break;
         case "6":
             dataManager.saveSettings(settings);
+            dataManager.savePositions(stasisChambers);
             rl.close();
             process.exit();
             break;
@@ -259,6 +267,61 @@ function askQuestion(question) {
 }
 
 /**
+ * Add a stasis chamber to the list of stasis chambers.
+ */
+async function addStasisChamber() {
+    clearConsole();
+    // Enter the coordinates for the activation object and the trapdoor
+    const activationObject = await askQuestion("Enter the coordinates for the activation object like (10 123 -23): ");
+    const trapdoor = await askQuestion("Enter the coordinates for the trapdoor where the pearl is like (13 123 -23): ");
+
+    // Check if the coordinates are valid
+    const coordinate = /^-?[0-9]{1,5} -?[0-9]{1,5} -?[0-9]{1,5}$/;
+    if (!coordinate.test(activationObject) || !coordinate.test(trapdoor)) {
+        console.log("Invalid coordinates");
+        return;
+    }
+
+    stasisChambers[parseVec3FromString(activationObject)] = parseVec3FromString(trapdoor);
+}
+
+/**
+ * Remove a stasis chamber from the list of stasis chambers.
+ */
+async function removeStasisChamber() {
+    clearConsole();
+    // Print the coordinates of the stasis chambers along with a number they can choose
+    let statisChamberList = {};
+    let i = 1;
+    for (const [key, value] of Object.entries(stasisChambers)) {
+        statisChamberList[i] = key;
+        console.log(i + ". Activation pos: " + key + " Trapdoor: " + value.x + " " + value.y + " " + value.z);
+        i++;
+    }
+
+    const input = await askQuestion("Enter the number of the stasis chamber you want to remove: ");
+    if (!statisChamberList[input]) {
+        console.log("Invalid number");
+        return;
+    }
+    delete stasisChambers[statisChamberList[input]];
+}
+
+/**
+ * Parse a string of coordinates and return a Vec3 object.
+ * @param {string} str - The string containing the coordinates in the format "x y z".
+ * @returns {Vec3} - The parsed Vec3 object.
+ */
+function parseVec3FromString(str) {
+    const numbers = str.split(' ').map(Number);
+    if (numbers.length !== 3 || numbers.some(isNaN)) {
+        throw new Error('Invalid input format. Expected format: "x y z"');
+    }
+
+    return vec3(numbers[0], numbers[1], numbers[2]);
+}
+
+/**
  * Clear the console screen.
  */
 function clearConsole() {
@@ -266,6 +329,5 @@ function clearConsole() {
     spawnSync(clearCommand, { stdio: 'inherit' });
 }
 
-
+// Start the setting screen setup
 setupSettingScreen();
-
