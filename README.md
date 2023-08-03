@@ -50,6 +50,10 @@ Edit the `settings.json` file with the appropriate values:
   "password": "123"
 }
 ```
+To set the Chambers you have to run:
+```bash
+node src/settings.js
+```
 
 ## Usage
 
