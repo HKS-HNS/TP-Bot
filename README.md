@@ -9,7 +9,7 @@ TP-Bot is a Mineflayer bot designed to interact with a Minecraft server using th
 Before using TP-Bot, make sure you have the following:
 
 1. Node.js installed on your system.
-2. Access to a Minecraft server running the version specified in the `minecraftVersion` setting (e.g., 1.19.2).
+2. Access to a Minecraft server running the version specified in the `minecraftVersion` setting (e.g., 1.20.1).
 
 ## Installation
 
