@@ -78,7 +78,7 @@ const bot = mineflayer.createBot({
   port: 25565,
   username: "some@mail.com",
   password: "123",
-  version: "1.19.2",
+  version: "1.20.1",
   chat: false, // Set to true if you want to enable chat signing
   // Add additional options here as needed
 });
