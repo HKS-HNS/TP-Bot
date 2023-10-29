@@ -32,7 +32,7 @@ Before using TP-Bot, make sure you have the following:
 The configuration for TP-Bot is stored in the `settings.json` file. You must provide the necessary details in this file before running the bot. Here is an explanation of each setting:
 
 - `serverPort`: The port number of your Minecraft server. Default is `25565`.
-- `minecraftVersion`: The version of Minecraft your server is running on (e.g., `1.20.1`).
+- `minecraftVersion`: The version of Minecraft your server is running on (e.g., `1.20.2`).
 - `chatSigning`: Set to `true` if you want to enable chat signing, otherwise set to `false`.
 - `username`: The Minecraft account email or username that TP-Bot will use to log in.
 - `serverIP`: The IP address or hostname of the Minecraft server you want TP-Bot to connect to.
@@ -43,7 +43,7 @@ Edit the `settings.json` file with the appropriate values:
 ```json
 {
   "serverPort": "25565",
-  "minecraftVersion": "1.20.1",
+  "minecraftVersion": "1.20.2",
   "chatSigning": "false",
   "username": "some@mail.com",
   "serverIP": "localhost",
@@ -78,7 +78,7 @@ const bot = mineflayer.createBot({
   port: 25565,
   username: "some@mail.com",
   password: "123",
-  version: "1.20.1",
+  version: "1.20.2",
   chat: false, // Set to true if you want to enable chat signing
   // Add additional options here as needed
 });
