@@ -113,14 +113,7 @@ function handleSpawnEntityEvent(instance, entity) {
  */
 function handlePhysicTick(instance) {
     // Check if all the pearls are at the right position
-    if (instance.entity !== null && inRangeOfStasisChambers(stasisChambers, instance)) {
-        for (let uuid in playerPearl) {
-            const pearl = Object.values(instance.entities).find((entity) => entity.uuid === uuid);
-            if (pearl !== undefined && searchStasisChambers([pearl.position], stasisChambers) === null) {
-                delete playerPearl[uuid];
-            }
-        }
-    }
+
 }
 
 /**

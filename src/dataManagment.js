@@ -30,6 +30,10 @@ function saveSettings() {
  * Load stasis chambers from the stasisChambers.json file.
  */
 function loadPositions() {
+
+    process.on('SIGINT', handleProgramExit);
+    process.on('SIGTERM', handleProgramExit);
+
     // Check if stasisChambers.json file exists
     if (fs.existsSync("../stasisChambers.json")) {
         let data = fs.readFileSync("../stasisChambers.json", 'utf8');
@@ -102,6 +106,11 @@ function getSettings() {
     return settings;
 }
 
+function handleProgramExit() {
+    savePositions();
+    process.exit();
+}
+
 // Export the functions to be used in other modules
 module.exports = {
     savePositions,
@@ -112,3 +121,5 @@ module.exports = {
     getSettings,
     getStasisChambers
 };
+
+
