@@ -14,9 +14,9 @@ function setupSpawnEvents(instance, playerPearl, stasisChambers) {
             bannedFood: []
         };
 
-        for (let uuid in playerPearl) {
-            if (!Object.values(instance.entities).some((entity) => entity.uuid === uuid) && inRangeOfStasisChambers(stasisChambers, instance)) {
-                delete playerPearl[uuid];
+        for (let id in playerPearl) {
+            if (!Object.values(instance.entities).some((entity) => entity.id === id) && inRangeOfStasisChambers(stasisChambers, instance)) {
+                delete playerPearl[id];
             }
         }
     });

@@ -71,11 +71,9 @@ function searchStasisChambers(coordinates, stasisChambers) {
  */
 function getCoordinate(playerPearl, instance, uuid) {
     const pearlUUID = Object.keys(playerPearl).filter(key => playerPearl[key] === uuid);
-
     if (pearlUUID.length === 0) return [];
-
-    return pearlUUID.map(uuid => {
-        const pearl = instance.entities[Object.keys(instance.entities).find(key => instance.entities[key].uuid === uuid)];
+    return pearlUUID.map(id => {
+        const pearl = instance.entities[Object.keys(instance.entities).find(key => instance.entities[key].id === parseInt(id))];
         if (pearl === undefined) return [];
         return pearl.position;
     });
