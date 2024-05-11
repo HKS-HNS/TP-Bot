@@ -2,4 +2,5 @@
 /node_modules/
 /package-lock.json
 /settings.json
-/playerPearl.json
+/src/playerPearl.json
+/src/config.json

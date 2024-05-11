@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "dependencies": {
     "inquirer": "^9.2.17",
-    "minecraft-data": "^3.40.0",
-    "mineflayer": "^4.20.0",
+    "minecraft-data": "^3.65.0",
+    "mineflayer": "^4.20.1",
     "mineflayer-auto-eat": "^3.3.6",
     "mineflayer-pathfinder": "^2.4.5",
     "prompt-sync": "^4.2.0",
